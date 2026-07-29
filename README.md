@@ -15,7 +15,7 @@
 
 ---
 
-KYD turns a fundraiser into an auction. Anyone launches one from the factory with a goal, a set of accepted stablecoins and a tier of NFT rewards; donors send stables or plain ETH — the contract swaps it through Uniswap V3 on the way in. Every donation moves the donor along a sorted on-chain leaderboard, so the ranking is always live and always verifiable. When the auction ends, the top donors mint the top-tier NFTs, a handful of extra winners are drawn with Gelato VRF randomness, and everyone who took part keeps a participation NFT. Metadata is pinned off-chain and the whole history is indexed by a subgraph the frontend reads from.
+KYD turns a fundraiser into an auction. Anyone launches one from the factory with a goal, a set of accepted stablecoins and a tier of NFT rewards; donors send stables or plain ETH — the contract swaps it through Uniswap V3 on the way in. First donation already earns a participation NFT, and every donation moves the donor along a sorted on-chain leaderboard whose ordering the contract itself enforces. Once the goal is hit, the top donors mint the top-tier NFTs and a handful of extra winners are drawn with Gelato VRF randomness. Metadata is pinned off-chain and the whole history is indexed by a subgraph the frontend reads from.
 
 ## Built with
 
@@ -41,18 +41,19 @@ flowchart LR
     E --> C
     D -->|stablecoin| C
     C --> F[Sorted donor leaderboard]
-    C -->|finish| G[Gelato VRF]
+    C -->|first donation| L[Participation NFT]
+    C -->|goal reached or finish| G[Gelato VRF]
     G -->|randomness| C
-    C -->|distributeRewards| H[Top + random + participation NFTs]
+    C -->|distributeRewards| H[Top + random winner NFTs]
     C -.->|events| I[Subgraph]
     I --> J[Web app]
     K[Metadata API] --> J
 ```
 
 1. **Create.** `AuctionFactory.create` clones an `Auction` plus its NFT collections and wires in the goal, accepted stables, top-winner NFT ids and how many random winners to draw.
-2. **Donate.** `donate` takes a supported stablecoin directly; `donateEth` routes ETH through Uniswap V3 into the auction's swap stable first. Each donor's running total is kept in a doubly linked list, so the leaderboard stays sorted without an off-chain sort.
-3. **Finish.** The owner calls `finish`, which asks the factory for Gelato VRF randomness.
-4. **Distribute.** `distributeRewards` mints the top-tier NFTs down the leaderboard, draws the random winners from whoever is left, and leaves every remaining participant with the participation NFT.
+2. **Donate.** `donate` takes a supported stablecoin directly; `donateEth` routes ETH through Uniswap V3 into the auction's swap stable first. A first-time donor is minted the participation NFT on the spot. Running totals live in a sorted doubly linked list: the caller passes the insert position and the contract rejects it unless the ordering invariant holds, so the ranking is verified on-chain without an on-chain sort.
+3. **Finish.** The auction closes either when `totalDonated` reaches the goal or when the owner calls `finish`. Both paths ask the factory for Gelato VRF randomness.
+4. **Distribute.** `distributeRewards` mints the top-tier NFTs down the leaderboard from the largest donor, then draws the random winners from whoever is left.
 
 ## Repository layout
 
