@@ -1,6 +1,7 @@
 {
   "name": "kyd",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "build:all": "turbo build",
     "dev": "turbo dev",

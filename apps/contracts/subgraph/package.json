@@ -1,6 +1,6 @@
 {
   "name": "subgraph",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "version": "0.0.1",
   "scripts": {
     "prepare:sepolia-eth": "mustache config/sepoliaEth.json subgraph.template.yaml > subgraph.yaml",
